@@ -7,18 +7,25 @@ mes02: .asciiz "Comenzo a ejecutar el programa de prueba\n"
        .text
 main:	
 
-	# Habilito las interrupciones del teclado en el procesador cero
+	# Habilito las interrupciones del teclado y pantalla en el procesador cero
 	
 	mfc0 $t0, $12
-	ori $t0, $t0, 0x00000101
+	ori $t0, $t0, 0x00000301    
 	mtc0 $t0, $12
 	
 	# Habilito las interrupciones del teclado en el dispositivo
 	
 	lw $t0, 0xffff0000
 	ori $t0, $t0, 0x00000001
+	sw $t0, 0xffff0000
 	
 	# El teclado ya puede interrumpir
+	
+	# Habilito las interrupciones del display en el dispositivo
+	
+	lw $t0, 0xffff0008
+	ori $t0, $t0, 0x00000001
+	sw $t0, 0xffff0008
 	
 	
 	li  	$v0, 4
