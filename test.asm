@@ -9,23 +9,23 @@ main:
 
 	# Habilito las interrupciones del teclado y pantalla en el procesador cero
 	
-	mfc0 $t0, $12
-	ori $t0, $t0, 0x00000301    
-	mtc0 $t0, $12
+	mfc0 $s0, $12
+	ori $s0, $s0, 0x00000301   
+	mtc0 $s0, $12
 	
 	# Habilito las interrupciones del teclado en el dispositivo
 	
-	lw $t0, 0xffff0000
-	ori $t0, $t0, 0x00000001
-	sw $t0, 0xffff0000
+	lw $s0, 0xffff0000
+	ori $s0, $s0, 0x00000002
+	sw $s0, 0xffff0000
 	
 	# El teclado ya puede interrumpir
 	
 	# Habilito las interrupciones del display en el dispositivo
 	
-	lw $t0, 0xffff0008
-	ori $t0, $t0, 0x00000001
-	sw $t0, 0xffff0008
+	lw $s0, 0xffff0008
+	ori $s0, $s0, 0x00000002
+	sw $s0, 0xffff0008
 	
 	
 	li  	$v0, 4
@@ -54,4 +54,26 @@ fin:	li 	$v0, 4	 	   # Imprime mensaje de resultado
 	li 	$v0, 4
 	la	$a0, salto
 	syscall
+	
+	# Habilito las interrupciones del teclado y pantalla en el procesador cero
+	
+	mfc0 $s0, $12
+	ori $s0, $s0, 0x00000301    
+	mtc0 $s0, $12
+	
+	# Habilito las interrupciones del teclado en el dispositivo
+	
+	lw $s0, 0xffff0000
+	ori $s0, $s0, 0x00000002
+	sw $s0, 0xffff0000
+	
+	# El teclado ya puede interrumpir
+	
+	# Habilito las interrupciones del display en el dispositivo
+	
+	lw $s0, 0xffff0008
+	ori $s0, $s0, 0x00000002
+	sw $s0, 0xffff0008
+	
 	b ini			   # Itera indefinidamente
+	

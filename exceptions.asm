@@ -24,6 +24,294 @@
 
 # Define the exception handling code.  This must go first!
 
+
+
+# This is the exception handler code that the processor runs when
+# an exception occurs. It only prints some information about the
+# exception, but can server as a model of how to write a handler.
+#
+# Because we are running in the kernel, we can use $k0/$k1 without
+# saving their old values.
+
+# This is the exception vector address for MIPS-1 (R2000):
+#	.ktext 0x80000080
+# This is the exception vector address for MIPS32:
+	.ktext 0x80000180
+# Select the appropriate one for the mode in which SPIM is compiled.
+#	.set noat
+	move $k1, $at		# Save $at
+#	.set at
+	sw $v0, s1		# Not re-entrant and we can't trust $sp
+	sw $a0, s2		# But we need to use these registers
+	
+	mfc0 $k0, $13		# Cause register
+	srl $a0, $k0, 2		# Extract ExcCode Field
+	andi $a0, $a0, 0x1f
+	
+	# Print information about exception.
+	#
+	li $v0, 4		# syscall 4 (print_str)
+	la $a0, __m1_
+	syscall
+
+	li $v0, 1		# syscall 1 (print_int)
+	srl $a0, $k0, 2		# Extract ExcCode Field
+	andi $a0, $a0, 0x1f
+	syscall
+
+	li $v0, 4		# syscall 4 (print_str)
+	andi $a0, $k0, 0x3c
+	lw $a0, __excp($a0)
+	nop
+	syscall
+
+	bne $k0, 0x18, ok_pc	# Bad PC exception requires special checks
+	nop
+
+	mfc0 $a0, $14		# EPC
+	andi $a0, $a0, 0x3	# Is EPC word-aligned?
+	beq $a0, 0, ok_pc
+	nop
+
+	li $v0, 10		# Exit on really bad PC
+	syscall
+
+ok_pc:
+	li $v0, 4		# syscall 4 (print_str)
+	la $a0, __m2_
+	syscall
+
+	srl $a0, $k0, 2		# Extract ExcCode Field
+	andi $a0, $a0, 0x1f
+	bne $a0, 0, ret		# 0 means exception was an interrupt
+	nop
+
+# Interrupt-specific code goes here!
+# Don't skip instruction at EPC since it has not executed.
+#
+
+	
+
+	mfc0 $a0, $13		# Determino si el teclado solicita atencion
+	srl $a0, $a0, 8
+	andi $a0, $a0, 1
+        beqz $a0, fin_manejador 
+	b teclado_interrumpe
+	
+	# Aqui se podria determinar si el display interrumpe
+	
+	mfc0 $a0, $13		# Determino si el display solicita atencion
+	srl $a0, $a0, 9
+	andi $a0, $a0, 1
+	beqz $a0, fin_manejador 
+	b display_interrumpe
+	
+teclado_interrumpe:
+
+	lb $k0, 0xffff0004	#Byte correspondiente a un caracter ascii
+	
+	# Hay que procesar la orden del usuario
+	
+	lb $a0, tick_ascii # Se tecleo t
+	nop
+	nop
+	nop
+	nop
+	beq $a0, $k0, tick
+	
+	lb $a0, reset_ascii # Se tecleo r
+	nop
+	nop
+	nop
+	nop
+	beq $a0, $k0, reset
+	
+	lb $a0, quit_ascii # Se tecleo q
+	nop
+	nop
+	nop
+	nop
+	beq $a0, $k0, quit
+	
+	b fin_manejador # Se tecleo otra cosa
+	
+tick:
+
+	lw $k0, timer_seg # Se suma un segundo
+	addi $k0, $k0, 1
+	
+	bge $k0, 60, sumar_minuto # Si hay que sumar un minuto
+	
+	sw $k0, timer_seg # No se sumo minuto alguno
+	
+	b print_timer
+	
+sumar_minuto:
+	
+	sw $zero, timer_seg # Se reinician los segundos
+	
+	lw $k0, timer_min # Sumo un minuto
+	addi $k0, $k0, 1
+	
+	bge $k0, 60, nueva_hora # Si hay que sumar una hora
+	
+	sw $k0, timer_min # Se guardan los minutos
+	
+	b print_timer
+	
+nueva_hora:
+	
+	sw $zero, timer_min # Ha pasado una hora
+	
+	b print_timer
+	
+print_timer:
+
+	lw $k0, timer_min
+	sw $k0, 0xffff000c # Se imprime por display
+	
+	move $a0, $k0 # Se imprime por syscall
+	li $v0, 1
+	nop
+	nop
+	nop
+	nop
+	syscall
+	
+	lw $k0, dos_puntos # Por display
+	sw $k0, 0xffff000c
+	
+	move $a0, $k0 # por syscall
+	li $v0, 4
+	nop
+	nop
+	nop
+	nop
+	syscall
+	nop
+	nop
+	nop
+	nop
+	
+	lw $k0, timer_seg # por disply
+	sw $k0, 0xfff000c
+	
+	move $a0, $k0 # por syscall
+	li $v0, 1
+	nop
+	nop
+	nop
+	nop
+	syscall
+	nop
+	nop
+	nop
+	nop
+	
+	lw $k0, nueva_linea # por display
+	sw $k0, 0xffff000c
+	
+	move $a0, $k0 # Por syscall
+	li $v0, 4
+	nop
+	nop
+	nop
+	nop
+	syscall
+	nop
+	nop
+	nop
+	nop
+
+	b fin_manejador
+
+quit:
+
+	li $v0, 10 # Se sale del programa
+	syscall
+
+reset:
+
+	sw $zero, timer_seg # Reinicio el reloj
+	sw $zero, timer_min
+	
+	b print_timer
+	
+	
+	# Ahora hay que transmitir a display el caracter
+	
+display_interrumpe:
+	
+	# Hay que implementar el codigo del manejador
+	# de interrupciones del display
+	
+	
+#
+
+ret:
+	li $v0 4		# syscall 4 (print_str)
+	la $a0 __m1_
+	syscall
+# Return from (non-interrupt) exception. Skip offending instruction
+# at EPC to avoid infinite loop.
+#
+
+fin_manejador:
+
+# Restore registers and reset procesor state
+#
+	lw $v0 s1		# Restore other registers
+	lw $a0 s2
+
+#	.set noat
+	move $at $k1		# Restore $at
+#	.set at
+
+	mtc0 $0 $13		# Clear Cause register
+
+	mfc0 $k0 $12		# Set Status register
+	ori  $k0 0x1		# Interrupts enabled
+	mtc0 $k0 $12
+	
+	nop
+	nop
+	nop
+	nop
+	
+	# Habilito las interrupciones del teclado y pantalla en el procesador cero
+	
+	mfc0 $s0, $12
+	ori $s0, $s0, 0x00000301   
+	mtc0 $s0, $12
+	
+	# Habilito las interrupciones del teclado en el dispositivo
+	
+	lw $s0, 0xffff0000
+	ori $s0, $s0, 0x00000002
+	sw $s0, 0xffff0000
+	
+	# El teclado ya puede interrumpir
+	
+	# Habilito las interrupciones del display en el dispositivo
+	
+	lw $s0, 0xffff0008
+	ori $s0, $s0, 0x00000002
+	sw $s0, 0xffff0008
+	
+	nop
+	nop
+	nop
+	nop
+# Return from exception on MIPS32:
+	eret
+	
+	nop
+	nop
+	nop
+	nop
+	
+
+
 	.kdata
 __m1_:	.asciiz "  Exception "
 __m2_:	.asciiz " occurred and ignored\n"
@@ -78,214 +366,6 @@ quit_ascii: .ascii "q"
 
 nueva_linea: .asciiz "\n"
 
-# This is the exception handler code that the processor runs when
-# an exception occurs. It only prints some information about the
-# exception, but can server as a model of how to write a handler.
-#
-# Because we are running in the kernel, we can use $k0/$k1 without
-# saving their old values.
-
-# This is the exception vector address for MIPS-1 (R2000):
-#	.ktext 0x80000080
-# This is the exception vector address for MIPS32:
-	.ktext 0x80000180
-# Select the appropriate one for the mode in which SPIM is compiled.
-#	.set noat
-	move $k1, $at		# Save $at
-#	.set at
-	sw $v0, s1		# Not re-entrant and we can't trust $sp
-	sw $a0, s2		# But we need to use these registers
-
-	mfc0 $k0, $13		# Cause register
-	srl $a0, $k0 2		# Extract ExcCode Field
-	andi $a0, $a0 0x1f
-
-	# Print information about exception.
-	#
-	li $v0, 4		# syscall 4 (print_str)
-	la $a0, __m1_
-	syscall
-
-	li $v0, 1		# syscall 1 (print_int)
-	srl $a0, $k0, 2		# Extract ExcCode Field
-	andi $a0, $a0, 0x1f
-	syscall
-
-	li $v0, 4		# syscall 4 (print_str)
-	andi $a0, $k0, 0x3c
-	lw $a0, __excp($a0)
-	nop
-	syscall
-
-	bne $k0, 0x18, ok_pc	# Bad PC exception requires special checks
-	nop
-
-	mfc0 $a0, $14		# EPC
-	andi $a0, $a0, 0x3	# Is EPC word-aligned?
-	beq $a0, 0, ok_pc
-	nop
-
-	li $v0, 10		# Exit on really bad PC
-	syscall
-
-ok_pc:
-	li $v0, 4		# syscall 4 (print_str)
-	la $a0, __m2_
-	syscall
-
-	srl $a0, $k0, 2		# Extract ExcCode Field
-	andi $a0, $a0, 0x1f
-	bne $a0, 0, ret		# 0 means exception was an interrupt
-	nop
-
-# Interrupt-specific code goes here!
-# Don't skip instruction at EPC since it has not executed.
-#
-
-	mfc0 $a0, $13		# Determino si el teclado solicita atencion
-	srl $a0, $a0, 8
-	andi $a0, $a0, 1
-        beqz $a0, fin_manejador 
-	b teclado_interrumpe
-	
-	# Aqui se podria determinar si el display interrumpe
-	
-	mfc0 $a0, $13		# Determino si el display solicita atencion
-	srl $a0, $a0, 9
-	andi $a0, $a0, 1
-	beqz $a0, fin_manejador 
-	b display_interrumpe
-	
-teclado_interrumpe:
-
-	lb $k0, 0xffff0004	#Byte correspondiente a un caracter ascii
-	
-	# Hay que procesar la orden del usuario
-	
-	lw $a0, tick_ascii # Se tecleo t
-	beq $a0, $k0, tick
-	
-	lw $a0, reset_ascii # Se tecleo r
-	beq $a0, $k0, reset
-	
-	lw $a0, quit_ascii # Se tecleo q
-	beq $a0, $k0, quit
-	
-	b fin_manejador # Se tecleo otra cosa
-	
-tick:
-
-	lw $k0, timer_seg # Se suma un segundo
-	addi $k0, $k0, 1
-	
-	bge $k0, 60, sumar_minuto # Si hay que sumar un minuto
-	
-	sw $k0, timer_seg # No se sumo minuto alguno
-	
-	b print_timer
-	
-sumar_minuto:
-	
-	sw $zero, timer_seg # Se reinician los segundos
-	
-	lw $k0, timer_min # Sumo un minuto
-	addi $k0, $k0, 1
-	
-	bge $k0, 60, nueva_hora # Si hay que sumar una hora
-	
-	sw $k0, timer_min # Se guardan los minutos
-	
-	b print_timer
-	
-nueva_hora:
-	
-	sw $zero, timer_min # Ha pasado una hora
-	
-	b print_timer
-	
-print_timer:
-
-	lw $k0, timer_min
-	sw $k0, 0xffff000c # Se imprime por display
-	
-	move $a0, $k0 # Se imprime por syscall
-	li $v0, 1
-	syscall
-	
-	lw $k0, dos_puntos # Por display
-	sw $k0, 0xffff000c
-	
-	move $a0, $k0 # por syscall
-	li $v0, 4
-	syscall
-	
-	lw $k0, timer_seg # por disply
-	sw $k0, 0xfff000c
-	
-	move $a0, $k0 # por syscall
-	li $v0, 1
-	syscall
-	
-	lw $k0, nueva_linea # por display
-	sw $k0, 0xffff000c
-	
-	move $a0, $k0 # Por syscall
-	li $v0, 4
-	syscall
-	
-
-	b fin_manejador
-
-quit:
-
-	li $v0, 10 # Se sale del programa
-	syscall
-
-reset:
-
-	sw $zero, timer_seg # Reinicio el reloj
-	sw $zero, timer_min
-	
-	b print_timer
-	
-	
-	# Ahora hay que transmitir a display el caracter
-	
-display_interrumpe:
-	
-	# Hay que implementar el codigo del manejador
-	# de interrupciones del display
-	
-	
-#
-
-ret:
-	li $v0 4		# syscall 4 (print_str)
-	la $a0 __m1_
-	syscall
-# Return from (non-interrupt) exception. Skip offending instruction
-# at EPC to avoid infinite loop.
-#
-
-fin_manejador:
-
-# Restore registers and reset procesor state
-#
-	lw $v0 s1		# Restore other registers
-	lw $a0 s2
-
-#	.set noat
-	move $at $k1		# Restore $at
-#	.set at
-
-	mtc0 $0 $13		# Clear Cause register
-
-	mfc0 $k0 $12		# Set Status register
-	ori  $k0 0x1		# Interrupts enabled
-	mtc0 $k0 $12
-
-# Return from exception on MIPS32:
-	eret
 
 
 
