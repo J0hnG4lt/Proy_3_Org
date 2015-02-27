@@ -1,3 +1,17 @@
+# Estudiantes: Georvic Tur    --- Carnet: 12-11402
+#	       Ronald Becerra --- Carnet: 12-10706
+
+# Nota importante: archivo original usado como esqueleto para la implementacion de un manejador de interrupciones.
+#                  El esqueleto se puede encontrar en la pagina del curso
+#		   Indicamos en comentarios el codigo del archivo original
+#                  Hay dos bloques de codigo que estaban en el esqueleto
+#		   Entre ellos se ha escrito el codigo del manejador
+#                  Al final del kdata se han anadido mas variables
+
+##################################################################################################################
+########################################## Esqueleto Inicio ######################################################
+##################################################################################################################
+
 # SPIM S20 MIPS simulator.
 # The default exception handler for spim.
 #
@@ -89,6 +103,9 @@ ok_pc:
 # Interrupt-specific code goes here!
 # Don't skip instruction at EPC since it has not executed.
 #
+##################################################################################################################
+########################################## Esqueleto Fin #########################################################
+##################################################################################################################
 
 	
 
@@ -100,11 +117,11 @@ ok_pc:
 	
 	# Aqui se podria determinar si el display interrumpe
 	
-	mfc0 $a0, $13		# Determino si el display solicita atencion
-	srl $a0, $a0, 9
-	andi $a0, $a0, 1
-	beqz $a0, fin_manejador 
-	b display_interrumpe
+	#mfc0 $a0, $13		# Determino si el display solicita atencion
+	#srl $a0, $a0, 9
+	#andi $a0, $a0, 1
+	#beqz $a0, fin_manejador 
+	#b display_interrumpe
 	
 teclado_interrumpe:
 
@@ -179,6 +196,7 @@ sumar_minuto:
 	
 nuevo_minuto:
 
+	# Se guarda el minuto sumado
 	sw $k0, timer_min + 4
 	b print_timer
 	
@@ -208,14 +226,34 @@ print_timer:
 	lb $k0, t_a # Por display
 	sb $k0, 0xffff000c
 	
+	nop
+	nop
+	nop
+	nop
+	
 	lb $k0, i_a
 	sb $k0, 0xffff000c
+	
+	nop
+	nop
+	nop
+	nop
 	
 	lb $k0, m_a
 	sb $k0, 0xffff000c
 	
+	nop
+	nop
+	nop
+	nop
+	
 	lb $k0, e_a
 	sb $k0, 0xffff000c
+	
+	nop
+	nop
+	nop
+	nop
 	
 	lb $k0, espacio_ascii
 	sb $k0, 0xffff000c
@@ -260,8 +298,18 @@ print_timer:
 	nop
 	syscall
 	
-	lw $k0, dos_puntos # Por display
+	nop
+	nop
+	nop
+	nop
+	
+	lw $k0, dos_puntos_ascii # Por display
 	sw $k0, 0xffff000c
+	
+	nop
+	nop
+	nop
+	nop
 	
 	
 	la $a0, dos_puntos # por syscall
@@ -334,19 +382,17 @@ quit:
 reset:
 
 	sw $zero, timer_seg # Reinicio el reloj
+	sw $zero, timer_seg+4
 	sw $zero, timer_min
+	sw $zero, timer_min+4
 	
 	b print_timer
 	
 	
-	# Ahora hay que transmitir a display el caracter
 	
-display_interrumpe:
-	
-	# Hay que implementar el codigo del manejador
-	# de interrupciones del display
-	
-	
+##################################################################################################################
+########################################## Esqueleto Inicio ######################################################
+##################################################################################################################	
 #
 
 ret:
@@ -455,28 +501,30 @@ __excp:	.word __e0_, __e1_, __e2_, __e3_, __e4_, __e5_, __e6_, __e7_, __e8_, __e
 s1:	.word 0
 s2:	.word 0
 
-timer_seg:  .word 0, 0
-timer_min:  .word 0, 0
+##################################################################################################################
+########################################## Esqueleto Fin #########################################################
+##################################################################################################################
 
-dos_puntos: .asciiz ":"
+timer_seg:  .word 0, 0 # Se guarda cada digito de los segundos por separado
+timer_min:  .word 0, 0 # Se guarda cada digito del minutero por separado
+
+dos_puntos: .asciiz ":" 
 time:       .asciiz "Time: "
-time_ascii: .ascii "Time: "
+time_ascii: .ascii "Time: " # No termina en cero para ser usado en el display
 
-tick_ascii: .ascii "t"
+tick_ascii: .ascii "t" # No termina en cero para ser usado en el display
 reset_ascii: .ascii "r"
 quit_ascii: .ascii "q"
 
 nueva_linea: .asciiz "\n"
-nueva_linea_ascii: .ascii "\n"
-	
-t_a: .ascii "t"
-	
+
+nueva_linea_ascii: .ascii "\n" # No termina en cero para ser usado en el display
+.align 2	
+t_a: .ascii "t" # No termina en cero para ser usado en el display
 i_a: .ascii "i"
-	
-m_a: .ascii "m"
-	
-e_a: .ascii "e"
-dos_puntos_ascii: .ascii ":"
+m_a: .ascii "m" 
+e_a: .ascii "e" 
+dos_puntos_ascii: .ascii ":" 
 espacio_ascii: .ascii " "
 
 

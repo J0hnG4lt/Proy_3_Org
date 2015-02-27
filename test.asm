@@ -1,3 +1,17 @@
+# Estudiantes: Georvic Tur    --- Carnet: 12-11402
+#	       Ronald Becerra --- Carnet: 12-10706
+
+# Nota importante: archivo original usado como esqueleto para la implementacion de un manejador de interrupciones.
+#                  El esqueleto se puede encontrar en la pagina del curso
+#		   Indicamos en comentarios el codigo del archivo original
+#                  Hay dos bloques de codigo que estaban en el esqueleto
+#		   Entre ellos se ha escrito el codigo del manejador
+#                  Al final del kdata se han anadido mas variables
+       
+##################################################################################################################
+########################################## Esqueleto Inicio ######################################################
+################################################################################################################## 
+      
        .data
 mes01: .asciiz "El resultado de la suma es "
 salto: .asciiz "\n"
@@ -6,6 +20,10 @@ n:     .word 20
 mes02: .asciiz "Comenzo a ejecutar el programa de prueba\n"
        .text
 main:	
+
+##################################################################################################################
+########################################## Esqueleto Fin  ########################################################
+##################################################################################################################
 
 	# Habilito las interrupciones del teclado y pantalla en el procesador cero
 	
@@ -27,6 +45,9 @@ main:
 	ori $s0, $s0, 0x00000002
 	sw $s0, 0xffff0008
 	
+##################################################################################################################
+########################################## Esqueleto Inicio ######################################################
+##################################################################################################################
 	
 	li  	$v0, 4
 	la	$a0, mes02
@@ -54,6 +75,10 @@ fin:	li 	$v0, 4	 	   # Imprime mensaje de resultado
 	li 	$v0, 4
 	la	$a0, salto
 	syscall
+	
+##################################################################################################################
+########################################## Esqueleto Fin  ########################################################
+##################################################################################################################
 	
 	# Habilito las interrupciones del teclado y pantalla en el procesador cero
 	
