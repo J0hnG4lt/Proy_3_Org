@@ -167,10 +167,53 @@ nueva_hora:
 	
 print_timer:
 
+	nop
+	nop
+	nop
+	nop
+
+	lb $k0, t_a # Por display
+	sb $k0, 0xffff000c
+	
+	lb $k0, i_a
+	sb $k0, 0xffff000c
+	
+	lb $k0, m_a
+	sb $k0, 0xffff000c
+	
+	lb $k0, e_a
+	sb $k0, 0xffff000c
+	
+	lb $k0, espacio_ascii
+	sb $k0, 0xffff000c
+	
+	nop
+	nop
+	nop
+	nop
+	
+	la $a0, time # Por consola
+	li $v0, 4
+	syscall
+	
+	nop
+	nop
+	nop
+	nop
+
 	lw $k0, timer_min
+	srl $k0, $k0, 8
+	ori $k0, $k0, 0x30
 	sw $k0, 0xffff000c # Se imprime por display
 	
-	move $a0, $k0 # Se imprime por syscall
+	lw $k0, timer_min
+	ori $k0, $k0, 0x30
+	andi $k0, $k0, 0xFF
+	sw $k0, 0xffff000c
+	
+	andi $k0, $k0, 0xF
+	
+	lw $a0, timer_min # Se imprime por syscall
 	li $v0, 1
 	nop
 	nop
@@ -181,7 +224,8 @@ print_timer:
 	lw $k0, dos_puntos # Por display
 	sw $k0, 0xffff000c
 	
-	move $a0, $k0 # por syscall
+	
+	la $a0, dos_puntos # por syscall
 	li $v0, 4
 	nop
 	nop
@@ -194,9 +238,18 @@ print_timer:
 	nop
 	
 	lw $k0, timer_seg # por disply
-	sw $k0, 0xfff000c
+	srl $k0, $k0, 8 
+	ori $k0, $k0, 0x30
+	sw $k0, 0xffff000c
 	
-	move $a0, $k0 # por syscall
+	lw $k0, timer_seg
+	ori $k0, $k0, 0x30
+	andi $k0, $k0, 0xFF
+	sw $k0, 0xffff000c
+	
+	andi $k0, $k0, 0xF
+	
+	lw $a0, timer_seg # por syscall
 	li $v0, 1
 	nop
 	nop
@@ -208,10 +261,10 @@ print_timer:
 	nop
 	nop
 	
-	lw $k0, nueva_linea # por display
+	lw $k0, nueva_linea_ascii # por display
 	sw $k0, 0xffff000c
 	
-	move $a0, $k0 # Por syscall
+	la $a0, nueva_linea # Por syscall
 	li $v0, 4
 	nop
 	nop
@@ -260,18 +313,18 @@ fin_manejador:
 
 # Restore registers and reset procesor state
 #
-	lw $v0 s1		# Restore other registers
-	lw $a0 s2
+	lw $v0, s1		# Restore other registers
+	lw $a0, s2
 
 #	.set noat
-	move $at $k1		# Restore $at
+	move $at, $k1		# Restore $at
 #	.set at
 
-	mtc0 $0 $13		# Clear Cause register
+	mtc0 $0, $13		# Clear Cause register
 
-	mfc0 $k0 $12		# Set Status register
-	ori  $k0 0x1		# Interrupts enabled
-	mtc0 $k0 $12
+	mfc0 $k0, $12		# Set Status register
+	ori  $k0, 0x1		# Interrupts enabled
+	mtc0 $k0, $12
 	
 	nop
 	nop
@@ -280,23 +333,23 @@ fin_manejador:
 	
 	# Habilito las interrupciones del teclado y pantalla en el procesador cero
 	
-	mfc0 $s0, $12
-	ori $s0, $s0, 0x00000301   
-	mtc0 $s0, $12
+	mfc0 $a0, $12
+	ori $a0, $a0, 0x00000301   
+	mtc0 $a0, $12
 	
 	# Habilito las interrupciones del teclado en el dispositivo
 	
-	lw $s0, 0xffff0000
-	ori $s0, $s0, 0x00000002
-	sw $s0, 0xffff0000
+	lw $a0, 0xffff0000
+	ori $a0, $a0, 0x00000002
+	sw $a0, 0xffff0000
 	
 	# El teclado ya puede interrumpir
 	
 	# Habilito las interrupciones del display en el dispositivo
 	
-	lw $s0, 0xffff0008
-	ori $s0, $s0, 0x00000002
-	sw $s0, 0xffff0008
+	lw $a0, 0xffff0008
+	ori $a0, $a0, 0x00000002
+	sw $a0, 0xffff0008
 	
 	nop
 	nop
@@ -359,12 +412,21 @@ timer_min:  .word 0
 
 dos_puntos: .asciiz ":"
 time:       .asciiz "Time: "
+time_ascii: .ascii "Time: "
 
 tick_ascii: .ascii "t"
 reset_ascii: .ascii "r"
 quit_ascii: .ascii "q"
 
 nueva_linea: .asciiz "\n"
+nueva_linea_ascii: .ascii "\n"
+t_a: .ascii "t"
+i_a: .ascii "i"
+m_a: .ascii "m"
+e_a: .ascii "e"
+dos_puntos_ascii: .ascii ":"
+espacio_ascii: .ascii " "
+
 
 
 
