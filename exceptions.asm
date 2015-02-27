@@ -137,31 +137,64 @@ teclado_interrumpe:
 	
 tick:
 
-	lw $k0, timer_seg # Se suma un segundo
+	lw $k0, timer_seg+4 # Se suma un segundo en las unidades
 	addi $k0, $k0, 1
 	
-	bge $k0, 60, sumar_minuto # Si hay que sumar un minuto
+	ble $k0, 9, sumar_segundo # Si no hay que aumentar decenas, salta
 	
-	sw $k0, timer_seg # No se sumo minuto alguno
+	sw $zero, timer_seg+4 # Se aumentan las decenas y se pone en cero la unidad
+	lw $a0, timer_seg
+	addi $a0, $a0, 1
+
+	b sumar_minuto_preguntar
+		
+sumar_segundo:
+	
+	sw $k0, timer_seg+4 # Se aumentan las unidades
+	b print_timer
+	
+sumar_minuto_preguntar:
+	
+	bge $a0, 6, sumar_minuto # Si hay que sumar un minuto
+	
+	sw $a0, timer_seg # No se sumo minuto alguno
 	
 	b print_timer
 	
 sumar_minuto:
 	
 	sw $zero, timer_seg # Se reinician los segundos
+	sw $zero, timer_seg+4
 	
-	lw $k0, timer_min # Sumo un minuto
+	lw $k0, timer_min+4 # Sumo un minuto
 	addi $k0, $k0, 1
 	
-	bge $k0, 60, nueva_hora # Si hay que sumar una hora
+	ble $k0, 9, nuevo_minuto
 	
-	sw $k0, timer_min # Se guardan los minutos
+	sw $zero, timer_min+4 # Se aumenta la decena del minutero
+	lw $a0, timer_min
+	addi $a0, $a0, 1
+	
+	b nueva_hora_preguntar
+	
+nuevo_minuto:
+
+	sw $k0, timer_min + 4
+	b print_timer
+	
+nueva_hora_preguntar:
+	
+	bge $a0, 6, nueva_hora # Si hay que sumar una hora
+	
+	sw $a0, timer_min # Se guardan los minutos
 	
 	b print_timer
+	
 	
 nueva_hora:
 	
 	sw $zero, timer_min # Ha pasado una hora
+	sw $zero, timer_min+4
 	
 	b print_timer
 	
@@ -200,20 +233,26 @@ print_timer:
 	nop
 	nop
 	nop
+	
 
 	lw $k0, timer_min
-	srl $k0, $k0, 8
-	ori $k0, $k0, 0x30
+	ori $k0, $k0, 0x30 # ASCII
 	sw $k0, 0xffff000c # Se imprime por display
 	
-	lw $k0, timer_min
-	ori $k0, $k0, 0x30
-	andi $k0, $k0, 0xFF
+	lw $k0, timer_min+4
+	ori $k0, $k0, 0x30 # ASCII
 	sw $k0, 0xffff000c
 	
-	andi $k0, $k0, 0xF
 	
-	lw $a0, timer_min # Se imprime por syscall
+	lw $a0, timer_min # Se imprime por syscall decena
+	li $v0, 1
+	nop
+	nop
+	nop
+	nop
+	syscall
+	
+	lw $a0, timer_min+4 # Se imprime por syscall unidad
 	li $v0, 1
 	nop
 	nop
@@ -238,18 +277,27 @@ print_timer:
 	nop
 	
 	lw $k0, timer_seg # por disply
-	srl $k0, $k0, 8 
-	ori $k0, $k0, 0x30
+	ori $k0, $k0, 0x30 # Ascii
 	sw $k0, 0xffff000c
 	
-	lw $k0, timer_seg
-	ori $k0, $k0, 0x30
-	andi $k0, $k0, 0xFF
+	lw $k0, timer_seg+4
+	ori $k0, $k0, 0x30 # Ascii
 	sw $k0, 0xffff000c
 	
-	andi $k0, $k0, 0xF
 	
-	lw $a0, timer_seg # por syscall
+	lw $a0, timer_seg # por syscall decenas
+	li $v0, 1
+	nop
+	nop
+	nop
+	nop
+	syscall
+	nop
+	nop
+	nop
+	nop
+	
+	lw $a0, timer_seg+4 # por syscall unidades
 	li $v0, 1
 	nop
 	nop
@@ -407,8 +455,8 @@ __excp:	.word __e0_, __e1_, __e2_, __e3_, __e4_, __e5_, __e6_, __e7_, __e8_, __e
 s1:	.word 0
 s2:	.word 0
 
-timer_seg:  .word 0
-timer_min:  .word 0
+timer_seg:  .word 0, 0
+timer_min:  .word 0, 0
 
 dos_puntos: .asciiz ":"
 time:       .asciiz "Time: "
@@ -420,9 +468,13 @@ quit_ascii: .ascii "q"
 
 nueva_linea: .asciiz "\n"
 nueva_linea_ascii: .ascii "\n"
+	
 t_a: .ascii "t"
+	
 i_a: .ascii "i"
+	
 m_a: .ascii "m"
+	
 e_a: .ascii "e"
 dos_puntos_ascii: .ascii ":"
 espacio_ascii: .ascii " "
