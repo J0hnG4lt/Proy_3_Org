@@ -25,25 +25,12 @@ main:
 ########################################## Esqueleto Fin  ########################################################
 ##################################################################################################################
 
-	# Habilito las interrupciones del teclado y pantalla en el procesador cero
-	
-	mfc0 $s0, $12
-	ori $s0, $s0, 0x00000301   
-	mtc0 $s0, $12
-	
-	# Habilito las interrupciones del teclado en el dispositivo
-	
-	lw $s0, 0xffff0000
-	ori $s0, $s0, 0x00000002
-	sw $s0, 0xffff0000
-	
-	# El teclado ya puede interrumpir
-	
-	# Habilito las interrupciones del display en el dispositivo
-	
-	lw $s0, 0xffff0008
-	ori $s0, $s0, 0x00000002
-	sw $s0, 0xffff0008
+	teq $zero, $zero # Habilito el receiver y transmitter
+			 # Por la manera en que se hizo el reloj, no hace 
+			 # falta inicializar en esta ocasion el reloj como lo
+			 # dice el enunciado del proyecto
+
+
 	
 ##################################################################################################################
 ########################################## Esqueleto Inicio ######################################################
@@ -80,25 +67,6 @@ fin:	li 	$v0, 4	 	   # Imprime mensaje de resultado
 ########################################## Esqueleto Fin  ########################################################
 ##################################################################################################################
 	
-	# Habilito las interrupciones del teclado y pantalla en el procesador cero
-	
-	mfc0 $s0, $12
-	ori $s0, $s0, 0x00000301    
-	mtc0 $s0, $12
-	
-	# Habilito las interrupciones del teclado en el dispositivo
-	
-	lw $s0, 0xffff0000
-	ori $s0, $s0, 0x00000002
-	sw $s0, 0xffff0000
-	
-	# El teclado ya puede interrumpir
-	
-	# Habilito las interrupciones del display en el dispositivo
-	
-	lw $s0, 0xffff0008
-	ori $s0, $s0, 0x00000002
-	sw $s0, 0xffff0008
 	
 	b ini			   # Itera indefinidamente
 	
