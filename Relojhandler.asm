@@ -238,6 +238,9 @@ teclado_interrumpe:
 	
 tick:
 
+	la $k0, presiona_t
+	sw $k0, direccion_tecla_presionada
+
 	lw $k0, timer_seg+4 # Se suma un segundo en las unidades
 	addi $k0, $k0, 1
 	
@@ -302,51 +305,28 @@ nueva_hora:
 	
 print_timer:
 
-
-	nop
-	nop
-	nop
-	nop
+	# Se encolan los caracteres que seran impresos
+	# Al final se imprimen todos en orden
 
 	lb $k0, t_a # Por display
 	crear_primer_nodo
 	
-	nop
-	nop
-	nop
-	nop
 	
-	lb $k0, i_a
+	lb $k0, i_a 
 	crear_otro_nodo
 	
-	nop
-	nop
-	nop
-	nop
 	
 	lb $k0, m_a
 	crear_otro_nodo
 	
-	nop
-	nop
-	nop
-	nop
 	
 	lb $k0, e_a
 	crear_otro_nodo
 	
-	nop
-	nop
-	nop
-	nop
 	
 	lb $k0, espacio_ascii
 	crear_otro_nodo
 	
-	
-	la $a0, time # Por consola
-	li $v0, 4
-	syscall
 	
 
 	lw $k0, timer_min
@@ -392,12 +372,10 @@ print_timer:
 
 	
 	lw $k0, nueva_linea_ascii # por display
-	#sw $k0, 0xffff000c
 	crear_otro_nodo
 	crear_otro_nodo
 	
-	la $a0, nueva_linea # Por syscall
-	li $v0, 4
+
 
 	
 print_cola:
@@ -426,13 +404,14 @@ print_cola:
 	
 pantalla_no_lista:
 
-	lw $a0, 0xffff0008
+	lw $a0, 0xffff0008 # Hay que esperar a que este ready
 	andi $a0, $a0, 1
 	bne $a0, 1, pantalla_no_lista
 	
-	sb $k0, caracter
+	sb $k0, caracter  # Se escribe el caracter por display
 	sb $k0, 0xffff000c
-	la $a0, caracter
+	
+	la $a0, caracter # Por syscall
 	li $v0, 4
 	syscall
 	
@@ -440,25 +419,40 @@ pantalla_no_lista:
 	
 escribir_caracter_cola_vacia:
 
-	sw $zero, cola_tail
+	sw $zero, cola_tail # Cola vacia
 	sw $zero, cola_head
 	
 escribir_caracter_fin:
 
-	lw $a0, cola_head
+	lw $a0, cola_head # se reacomoda la cola
 	lw $k0, cola_tail
 	or $a0, $k0, $a0
 	
 	bnez $a0, print_cola
+	
+	lw $a0, direccion_tecla_presionada # Mensaje cual tecla fue presionada
+	li $v0, 4
+	syscall
+	
+	la $a0, nueva_linea 
+	li $v0, 4
+	syscall
 
 	b fin_manejador
 
 quit:
 
+	la $k0, presiona_q
+	sw $k0, direccion_tecla_presionada
+
 	li $v0, 10 # Se sale del programa
 	syscall
+	
 
 reset:
+
+	la $k0, presiona_r
+	sw $k0, direccion_tecla_presionada
 
 	sw $zero, timer_seg # Reinicio el reloj
 	sw $zero, timer_seg+4
@@ -528,11 +522,7 @@ fin_manejador:
 	mtc0 $k0, $12
 
 # Fin codigo esqueleto
-			
-	nop
-	nop
-	nop
-	nop
+
 	
 	# Habilito las interrupciones del teclado y pantalla en el procesador cero
 	
@@ -554,17 +544,11 @@ fin_manejador:
 	ori $a0, $a0, 0x00000002
 	sw $a0, 0xffff0008
 	
-	nop
-	nop
-	nop
-	nop
+
 # Return from exception on MIPS32:
 	eret
 	
-	nop
-	nop
-	nop
-	nop
+
 	
 
 
@@ -640,7 +624,12 @@ cola: .word 0  # Cola que permite guardar caracteres del display antes de imprim
 cola_head: .word 0
 cola_tail: .word 0
 
-caracter: .byte 0, 0
+caracter: .byte 0, 0 # Se usa el segundo cero para que un syscall 4 se detenga
+
+presiona_t: .asciiz "    ---> Se presiono la tecla t"
+presiona_r: .asciiz "    ---> Se presiono la tecla r"
+presiona_q: .asciiz "    ---> Se presiono la tecla q"
+direccion_tecla_presionada: .word 0
 
 
 
